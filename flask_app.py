@@ -23,14 +23,12 @@ def download():
     yt = YouTube(yt_url)
     video_stream = yt.streams.get_highest_resolution()
     video_path = os.path.join(os.path.dirname(__file__), 'static/')
-    print("video path: " + video_path)
     video_filename = video_stream.title + '.mp4'
     # Download the video
     video_stream.download(filename=video_filename, output_path =video_path)
 
     # Extract the actual filename from the downloaded video
 
-    print("title: " + video_stream.title)
     # Convert the video to the selected format
     selected_format = request.form.get('format', 'wav')
     if selected_format == 'mp3':
@@ -48,7 +46,6 @@ def download():
 @app.route('/serve_audio/<filename>')
 def serve_audio(filename):
     audio_path = os.path.join(os.path.dirname(__file__), 'static/')
-    print("serve audio: " + audio_path)
     return send_file(audio_path + filename, as_attachment=True)
 
 
