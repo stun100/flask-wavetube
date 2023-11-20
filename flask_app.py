@@ -9,6 +9,14 @@ app = Flask(__name__)
 ALLOWED_EXTENSIONS = {'mp3', 'wav'}
 
 
+def sanitize_filename(filename):
+    # Replace characters that are not allowed in Windows filenames
+    invalid_chars = r'<>:"/\|?*'
+    for char in invalid_chars:
+        filename = filename.replace(char, '_')
+    return filename
+
+
 def get_db_connection():
     conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'db', 'database.db'))
     conn.row_factory = sqlite3.Row
@@ -30,7 +38,7 @@ def download():
     yt = YouTube(yt_url)
     video_stream = yt.streams.get_highest_resolution()
     video_path = os.path.join(os.path.dirname(__file__), 'static/')
-    video_filename = video_stream.title + '.mp4'
+    video_filename = sanitize_filename(video_stream.title) + '.mp4'
     # Download the video
     video_stream.download(filename=video_filename, output_path=video_path)
 
@@ -40,12 +48,12 @@ def download():
     selected_format = request.form.get('format', 'wav')
     if selected_format == 'mp3':
         audio = AudioSegment.from_file(video_path + video_filename, format="mp4")
-        audio.export(video_path + video_stream.title + '.mp3', format="mp3")
-        return redirect(url_for('serve_audio', filename=video_stream.title + '.mp3'))
+        audio.export(video_path + sanitize_filename(video_stream.title) + '.mp3', format="mp3")
+        return redirect(url_for('serve_audio', filename=sanitize_filename(video_stream.title) + '.mp3'))
     elif selected_format == 'wav':
         audio = AudioSegment.from_file(video_path + video_filename, format="mp4")
-        audio.export(video_path + video_stream.title + '.wav', format="wav")
-        return redirect(url_for('serve_audio', filename=video_stream.title + '.wav'))
+        audio.export(video_path + sanitize_filename(video_stream.title) + '.wav', format="wav")
+        return redirect(url_for('serve_audio', filename=sanitize_filename(video_stream.title) + '.wav'))
     else:
         return "Invalid format"
 
@@ -57,7 +65,7 @@ def serve_audio(filename):
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
         ip_address = request.environ['REMOTE_ADDR']
     else:
-        ip_address = request.environ['HTTP_X_FORWARDED_FOR'] # if behind a proxy
+        ip_address = request.environ['HTTP_X_FORWARDED_FOR']  # if behind a proxy
     conn = get_db_connection()
     conn.execute("INSERT INTO user (ip_address, filename) VALUES (?, ?)", (ip_address, filename))
     conn.commit()  # Commit the changes to the database
