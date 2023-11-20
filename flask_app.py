@@ -54,8 +54,12 @@ def download():
 def serve_audio(filename):
     audio_path = os.path.join(os.path.dirname(__file__), 'static/')
     ip_address = request.environ['REMOTE_ADDR']
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        ip_address = request.environ['REMOTE_ADDR']
+    else:
+        ip_address = request.environ['HTTP_X_FORWARDED_FOR'] # if behind a proxy
     conn = get_db_connection()
-    conn.execute("INSERT INTO user (hostname, ip_address, filename) VALUES (?, ?, ?)", (hostname,ip_address, filename))
+    conn.execute("INSERT INTO user (ip_address, filename) VALUES (?, ?)", (ip_address, filename))
     conn.commit()  # Commit the changes to the database
     conn.close()
     return send_file(audio_path + filename, as_attachment=True)
