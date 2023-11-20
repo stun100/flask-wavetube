@@ -1,6 +1,5 @@
 import sqlite3
-import socket
-from flask import Flask, render_template, url_for, request, redirect, send_file
+from flask import Flask, render_template, url_for, request, redirect, send_file, request
 from pytube import YouTube
 from pydub import AudioSegment
 import os
@@ -54,8 +53,7 @@ def download():
 @app.route('/serve_audio/<filename>')
 def serve_audio(filename):
     audio_path = os.path.join(os.path.dirname(__file__), 'static/')
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
+    ip_address = request.environ['REMOTE_ADDR']
     conn = get_db_connection()
     conn.execute("INSERT INTO user (hostname, ip_address, filename) VALUES (?, ?, ?)", (hostname,ip_address, filename))
     conn.commit()  # Commit the changes to the database
