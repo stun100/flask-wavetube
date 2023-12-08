@@ -1,5 +1,5 @@
 import sqlite3
-from flask import Flask, render_template, url_for, request, redirect, send_file, request
+from flask import Flask, render_template, url_for, request, redirect, send_file, request, after_this_request
 from pytube import YouTube
 from pydub import AudioSegment
 import os
@@ -62,15 +62,26 @@ def download():
 def serve_audio(filename):
     audio_path = os.path.join(os.path.dirname(__file__), 'static/')
     ip_address = request.environ['REMOTE_ADDR']
-    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
-        ip_address = request.environ['REMOTE_ADDR']
-    else:
+
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is not None:
         ip_address = request.environ['HTTP_X_FORWARDED_FOR']  # if behind a proxy
+
     conn = get_db_connection()
     conn.execute("INSERT INTO user (ip_address, filename) VALUES (?, ?)", (ip_address, filename))
     conn.commit()  # Commit the changes to the database
     conn.close()
-    return send_file(audio_path + filename, as_attachment=True)
+
+    file_path = os.path.join(audio_path, filename)
+
+    @after_this_request
+    def delete_files(response):
+        # Delete the files after the response has been sent
+        os.remove(file_path)
+        os.remove(file_path[:-4] + ".mp4")
+        return response
+
+    # Send the file as an attachment
+    return send_file(file_path, as_attachment=True)
 
 
 if __name__ == '__main__':
