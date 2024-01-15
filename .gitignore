@@ -163,3 +163,4 @@ static
 db/database.db
 test.py
 .idea
+constants.py
